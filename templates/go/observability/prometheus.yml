@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'local'
+    environment: 'development'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'my-api'
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Accede al host desde contenedor
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['host.docker.internal:9187']  # Requiere postgres_exporter
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']  # Requiere redis_exporter
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['host.docker.internal:8081']

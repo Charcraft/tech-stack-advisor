@@ -1,0 +1,26 @@
+{
+  "name": "tech-stack-advisor",
+  "version": "1.0.0",
+  "description": "Evalúa tu proyecto y recomienda el stack tecnológico óptimo con justificación senior, accesible a founders y vibecoders. Convierte incertidumbre técnica en decisiones documentadas y accionables.",
+  "author": "Carlos Martinez Pineda (Charcraft)",
+  "license": "MIT",
+  "repository": "https://github.com/Charcraft/tech-stack-advisor",
+  "tags": [
+    "architecture",
+    "decision-making",
+    "startup",
+    "planning",
+    "tech-stack",
+    "cto-fractional"
+  ],
+  "entry": "workflows/evaluate.yaml",
+  "tools": [
+    "read",
+    "glob",
+    "grep",
+    "question",
+    "write",
+    "bash"
+  ],
+  "min_opencode_version": "0.4.0"
+}

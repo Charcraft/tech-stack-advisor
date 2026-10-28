@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    { "pattern": "localhost" },
+    { "pattern": "127.0.0.1" },
+    { "pattern": "ghcr.io" },
+    { "pattern": "my-api" },
+    { "pattern": "my-project" }
+  ],
+  "replacementPatterns": [
+    { "pattern": "/templates/", "replacement": "https://github.com/Charcraft/tech-stack-advisor/tree/main/templates/" }
+  ],
+  "aliveStatusCodes": [200, 301, 302],
+  "deadStatusCodes": [404, 500]
+}

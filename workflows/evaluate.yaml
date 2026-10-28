@@ -1,0 +1,156 @@
+name: tech-stack-evaluation
+version: "1.0"
+description: |
+  Evalúa tu proyecto y recomienda el stack tecnológico óptimo.
+  Flujo: detect → analyze → interview → recommend → report
+  Genera: STACK_DECISION.md + NEXT_STEPS.md
+
+steps:
+  # 1. Detección rápida de señales (heurísticas, sin LLM)
+  - id: detect
+    name: "Detectar stack actual y señales del repo"
+    tool: bash
+    cmd: python scripts/detect-stack.py .
+    output: detected
+    timeout: 30
+    description: |
+      Escanea package.json, go.mod, Cargo.toml, pyproject.toml, Dockerfile,
+      docker-compose, CI/CD, SQL migrations, etc. Emite JSON con señales.
+
+  # 2. Análisis profundo con LLM (Arquitecto Senior)
+  - id: analyze
+    name: "Análisis profundo del codebase"
+    prompt: prompts/analyze-project.md
+    input: detected
+    output: analysis
+    model:
+      temperature: 0.1
+      max_tokens: 4000
+    description: |
+      Extrae: tipo proyecto, dominio, señales de escala, equipo, constraints,
+      pain points, goals. Salida JSON estricto.
+
+  # 3. Entrevista ligera al founder (CTO Fractional)
+  - id: interview
+    name: "Entrevista: 5-7 preguntas clave"
+    prompt: prompts/interview.md
+    input: analysis
+    output: interview
+    loop: true
+    until: "interview.done == true"
+    model:
+      temperature: 0.3
+      max_tokens: 3000
+    description: |
+      Preguntas una a una, lenguaje llano, cada una con 'why'.
+      Para en 5+ respuestas o usuario dice "basta".
+
+  # 4. Motor de recomendación (Arquitecto Senior decide)
+  - id: recommend
+    name: "Recomendación principal + alternativas + trade-offs"
+    prompt: prompts/recommend.md
+    input:
+      analysis: "{{analysis}}"
+      interview: "{{interview}}"
+    output: recommendation
+    model:
+      temperature: 0.2
+      max_tokens: 5000
+    description: |
+      Aplica matriz de decisión interna, emite Markdown con:
+      - Recomendación principal (justificación + trade-offs)
+      - 2 Alternativas (cuándo elegir + coste real)
+      - Próximo paso accionable (comando copy-paste)
+
+  # 5. Genera artefactos versionables (Technical Writer)
+  - id: report
+    name: "Genera STACK_DECISION.md + NEXT_STEPS.md"
+    prompt: prompts/report.md
+    input:
+      analysis: "{{analysis}}"
+      interview: "{{interview}}"
+      recommendation: "{{recommendation}}"
+    output: files
+    write_to:
+      - path: STACK_DECISION.md
+        template: |
+          {{#if files.STACK_DECISION}}
+          {{files.STACK_DECISION}}
+          {{else}}
+          # ADR: Elección de Stack Tecnológico
+
+          **Fecha**: {{date "YYYY-MM-DD"}}
+          **Estado**: Borrador
+          **Decisores**: [Founder/CTO], Tech Stack Advisor
+
+          ---
+
+          ## Contexto
+          {{analysis.project_type}} / {{analysis.domain}} / {{analysis.scale_signals.expected_rps}}
+
+          ---
+
+          ## Decisión
+          {{recommendation}}
+
+          ---
+
+          ## Follow-up (90 días)
+          - [ ] Load test real vs objetivo
+          - [ ] Cloud bill real vs proyección
+          - [ ] Velocidad onboarding nuevo dev
+          {{/if}}
+      - path: NEXT_STEPS.md
+        template: |
+          {{#if files.NEXT_STEPS}}
+          {{files.NEXT_STEPS}}
+          {{else}}
+          # Próximos Pasos – Stack Validado
+
+          > Ejecuta en orden. Cada paso tiene criterio de "hecho".
+
+          ## 0. Validación Rápida (5 min)
+          - [ ] Clona plantilla recomendada
+          - [ ] `make dev` → compila y responde `/healthz` en <30 seg
+
+          ## 1. Fundamentos (30 min)
+          - [ ] Configura `.env`
+          - [ ] `make migrate`
+          - [ ] `make test` >80% coverage
+
+          ## 2. Primer Feature Real (2-4h)
+          - [ ] Define 1 endpoint CRUD
+          - [ ] Usa `sqlc` para queries type-safe
+          - [ ] Añade test de integración
+
+          ## 3. Observabilidad Mínima (15 min)
+          - [ ] Logs JSON (zerolog)
+          - [ ] Métricas Prometheus
+          - [ ] Tracing Jaeger
+
+          ## 4. CI/CD Básico (30 min)
+          - [ ] GitHub Actions: lint + test + build + docker
+
+          ## 5. Load Test Baseline (10 min)
+          - [ ] `k6 run scripts/load-test.js`
+          - [ ] Documenta en `PERF_BASELINE.md`
+
+          ---
+
+          ## 🎯 Hito: "Stack Validado"
+          Cuando todo ✅ → fundación de producción lista.
+          {{/if}}
+    description: |
+      Escribe dos archivos Markdown listos para commit:
+      - STACK_DECISION.md: ADR ligero con contexto, decisión, consecuencias, follow-up
+      - NEXT_STEPS.md: Checklist accionable con criterios de done
+
+# Metadatos para marketplace
+metadata:
+  category: architecture
+  maturity: stable
+  estimated_duration: "10-20 minutos"
+  requires_user_input: true
+  output_files:
+    - STACK_DECISION.md
+    - NEXT_STEPS.md

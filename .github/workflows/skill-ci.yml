@@ -1,0 +1,91 @@
+name: Skill CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-detector:
+    name: Test Detector Script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test deps
+        run: pip install pytest
+      - name: Run detector tests
+        run: python -m pytest tests/test_detect_stack.py -v
+
+  lint-workflows:
+    name: Lint Workflow YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate YAML syntax
+        run: |
+          python -c "
+          import yaml, sys
+          for f in ['workflows/evaluate.yaml', '.github/workflows/ci.yml']:
+              with open(f) as fp:
+                  yaml.safe_load(fp)
+              print(f'OK: {f}')
+          "
+
+  validate-prompts:
+    name: Validate Prompt Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check prompt frontmatter
+        run: |
+          for f in prompts/*.md; do
+            head -20 "$f" | grep -q "^---$" || { echo "Missing frontmatter in $f"; exit 1; }
+            echo "OK: $f"
+          done
+
+  check-templates:
+    name: Check Template Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify template directories exist
+        run: |
+          for t in go python rust node; do
+            [ -d "templates/$t" ] || { echo "Missing templates/$t"; exit 1; }
+            [ -f "templates/$t/README.md" ] || { echo "Missing templates/$t/README.md"; exit 1; }
+            echo "OK: templates/$t"
+          done
+
+  skill-metadata:
+    name: Validate skill.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check skill.json schema
+        run: |
+          python -c "
+          import json, sys
+          with open('skill.json') as f:
+              data = json.load(f)
+          required = ['name', 'version', 'description', 'author', 'license', 'entry', 'tools']
+          for r in required:
+              assert r in data, f'Missing required field: {r}'
+          assert data['name'] == 'tech-stack-advisor'
+          assert data['entry'] == 'workflows/evaluate.yaml'
+          print('skill.json valid')
+          "
+
+  markdown-link-check:
+    name: Check Markdown Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.markdown-link-check.json'
