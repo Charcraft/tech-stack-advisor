@@ -1,26 +1,168 @@
 {
   "name": "tech-stack-advisor",
   "version": "1.0.0",
-  "description": "Evalúa tu proyecto y recomienda el stack tecnológico óptimo con justificación senior, accesible a founders y vibecoders. Convierte incertidumbre técnica en decisiones documentadas y accionables.",
-  "author": "Carlos Martinez Pineda (Charcraft)",
+  "description": "Evaluates your project and recommends the optimal tech stack with senior justification. Converts technical uncertainty into documented, actionable decisions.",
+  "author": {
+    "name": "Carlos Martinez Pineda",
+    "email": "charcraftycarlos@gmail.com",
+    "url": "https://github.com/Charcraft"
+  },
   "license": "MIT",
-  "repository": "https://github.com/Charcraft/tech-stack-advisor",
-  "tags": [
-    "architecture",
-    "decision-making",
-    "startup",
-    "planning",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Charcraft/tech-stack-advisor.git"
+  },
+  "homepage": "https://github.com/Charcraft/tech-stack-advisor",
+  "keywords": [
     "tech-stack",
-    "cto-fractional"
+    "architecture-decision",
+    "startup-tools",
+    "cto-fractional",
+    "architecture-decision-record",
+    "skill"
   ],
+  "category": "architecture",
+  "maturity": "stable",
   "entry": "workflows/evaluate.yaml",
-  "tools": [
-    "read",
-    "glob",
-    "grep",
-    "question",
-    "write",
-    "bash"
-  ],
-  "min_opencode_version": "0.4.0"
+  "interfaces": {
+    "inputs": {
+      "project_path": {
+        "type": "string",
+        "description": "Path to project root to analyze",
+        "default": "."
+      },
+      "skip_interview": {
+        "type": "boolean",
+        "description": "Skip interactive interview, use only code analysis",
+        "default": false
+      },
+      "preferred_stacks": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Stacks to prefer (go, python, rust, node)",
+        "default": []
+      }
+    },
+    "outputs": {
+      "decision_file": {
+        "type": "string",
+        "description": "Path to generated ADR (Markdown)",
+        "default": "STACK_DECISION.md"
+      },
+      "next_steps_file": {
+        "type": "string",
+        "description": "Path to generated actionable checklist (Markdown)",
+        "default": "NEXT_STEPS.md"
+      },
+      "recommendation": {
+        "type": "object",
+        "description": "Structured recommendation for programmatic use",
+        "properties": {
+          "primary": { "type": "string" },
+          "alternatives": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  },
+  "requirements": {
+    "runtime": {
+      "python": ">=3.10",
+      "git": ">=2.0"
+    },
+    "tools": [
+      "read_files",
+      "glob_files",
+      "search_files",
+      "ask_user",
+      "write_files",
+      "run_shell"
+    ],
+    "permissions": [
+      "fs_read",
+      "fs_write",
+      "shell_exec"
+    ]
+  },
+  "harness_compatibility": {
+    "opencode": {
+      "min_version": "0.4.0",
+      "tools_mapping": {
+        "read_files": "read",
+        "glob_files": "glob",
+        "search_files": "grep",
+        "ask_user": "question",
+        "write_files": "write",
+        "run_shell": "bash"
+      }
+    },
+    "claude_code": {
+      "min_version": "1.0",
+      "tools_mapping": {
+        "read_files": "Read",
+        "glob_files": "Glob",
+        "search_files": "Grep",
+        "ask_user": "Ask",
+        "write_files": "Write",
+        "run_shell": "Bash"
+      }
+    },
+    "agent_run": {
+      "min_version": "0.1",
+      "tools_mapping": {
+        "read_files": "read",
+        "glob_files": "glob",
+        "search_files": "grep",
+        "ask_user": "input",
+        "write_files": "write",
+        "run_shell": "exec"
+      }
+    }
+  },
+  "workflow": {
+    "steps": [
+      {
+        "id": "detect",
+        "name": "Detect stack signals",
+        "type": "shell",
+        "command": "python scripts/detect_stack.py ${project_path}",
+        "output": "detected_signals"
+      },
+      {
+        "id": "analyze",
+        "name": "Senior architect analysis",
+        "type": "llm",
+        "prompt": "prompts/analyze-project.md",
+        "input": "detected_signals",
+        "output": "analysis"
+      },
+      {
+        "id": "interview",
+        "name": "CTO-fractional interview",
+        "type": "llm",
+        "prompt": "prompts/interview.md",
+        "input": "analysis",
+        "output": "interview",
+        "loop": true,
+        "condition": "!interview.done",
+        "max_iterations": 7
+      },
+      {
+        "id": "recommend",
+        "name": "Decision engine",
+        "type": "llm",
+        "prompt": "prompts/recommend.md",
+        "input": { "analysis": "analysis", "interview": "interview" },
+        "output": "recommendation"
+      },
+      {
+        "id": "report",
+        "name": "Generate artifacts",
+        "type": "llm",
+        "prompt": "prompts/report.md",
+        "input": { "analysis": "analysis", "interview": "interview", "recommendation": "recommendation" },
+        "output": { "decision_file": "STACK_DECISION.md", "next_steps_file": "NEXT_STEPS.md" }
+      }
+    ]
+  }
 }

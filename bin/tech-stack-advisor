@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""
+Universal entry point for Tech Stack Advisor skill.
+Can be called from any harness: opencode, Claude Code, agent-run, CLI, etc.
+
+Usage:
+    python -m tech_stack_advisor [project_path] [--skip-interview] [--preferred-stacks go,python]
+    tech-stack-advisor [project_path] [--skip-interview] [--preferred-stacks go,python]
+
+Environment variables (alternative to CLI args):
+    TSA_PROJECT_PATH
+    TSA_SKIP_INTERVIEW
+    TSA_PREFERRED_STACKS
+"""
+import argparse
+import json
+import os
+import sys
+import subprocess
+from pathlib import Path
+
+# Add parent dir to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from scripts.detect_stack import main as detect_main
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog="tech-stack-advisor",
+        description="Evaluate project and recommend optimal tech stack"
+    )
+    parser.add_argument(
+        "project_path",
+        nargs="?",
+        default=os.environ.get("TSA_PROJECT_PATH", "."),
+        help="Path to project root (default: current directory)"
+    )
+    parser.add_argument(
+        "--skip-interview",
+        action="store_true",
+        default=os.environ.get("TSA_SKIP_INTERVIEW", "false").lower() == "true",
+        help="Skip interactive interview, use only code analysis"
+    )
+    parser.add_argument(
+        "--preferred-stacks",
+        default=os.environ.get("TSA_PREFERRED_STACKS", ""),
+        help="Comma-separated preferred stacks (go,python,rust,node)"
+    )
+    parser.add_argument(
+        "--output-decision",
+        default=os.environ.get("TSA_OUTPUT_DECISION", "STACK_DECISION.md"),
+        help="Output path for ADR"
+    )
+    parser.add_argument(
+        "--output-steps",
+        default=os.environ.get("TSA_OUTPUT_STEPS", "NEXT_STEPS.md"),
+        help="Output path for checklist"
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output structured JSON instead of running full workflow"
+    )
+    return parser.parse_args()
+
+def run_detect(project_path: str) -> dict:
+    """Run heuristic detector and return signals."""
+    result = subprocess.run(
+        [sys.executable, "-m", "scripts.detect_stack", project_path],
+        capture_output=True, text=True, timeout=60
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Detector failed: {result.stderr}")
+    return json.loads(result.stdout)
+
+def main():
+    args = parse_args()
+    
+    # For JSON output mode (programmatic use)
+    if args.json:
+        signals = run_detect(args.project_path)
+        print(json.dumps(signals, indent=2))
+        return 0
+    
+    # Full workflow would be orchestrated by harness
+    # This entry point provides the detect step for harnesses that need it
+    signals = run_detect(args.project_path)
+    print(json.dumps(signals, indent=2))
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -112,9 +112,14 @@ if (ROOT / "go.mod").exists():
     fw_map = {"chi": "chi", "gin": "gin", "echo": "echo", "fiber": "fiber", "httprouter": "httprouter", "gorilla/mux": "gorilla-mux"}
     for kw, fw in fw_map.items():
         if kw in mod: add_unique(signals["frameworks"], fw)
+    # Check go.mod for tools
     if "sqlc" in mod: add_unique(signals["build_tools"], "sqlc")
     if "wire" in mod: add_unique(signals["build_tools"], "wire")
     if "air" in mod: add_unique(signals["build_tools"], "air")
+    # Also check for sqlc.yaml config file
+    if (ROOT / "sqlc.yaml").exists() or (ROOT / "sqlc.json").exists():
+        add_unique(signals["build_tools"], "sqlc")
+        signals["config_files"].append("sqlc.yaml" if (ROOT / "sqlc.yaml").exists() else "sqlc.json")
     # Testing
     if "testify" in mod: add_unique(signals["testing"], "testify")
     if "ginkgo" in mod: add_unique(signals["testing"], "ginkgo")

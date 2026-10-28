@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCRIPT = Path(__file__).parent.parent / "scripts" / "detect-stack.py"
+SCRIPT = Path(__file__).parent.parent / "scripts" / "detect_stack.py"
 
 def run_detect(project_dir: Path) -> dict:
     result = subprocess.run(
@@ -77,8 +77,8 @@ axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 """)
+        (root / "src").mkdir(exist_ok=True)
         (root / "src" / "main.rs").write_text("fn main() {}\n")
-        (root / "src" / "main.rs").parent.mkdir(exist_ok=True)
         
         signals = run_detect(root)
         

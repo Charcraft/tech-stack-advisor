@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/skill-manifest.json",
+  "name": "tech-stack-advisor",
+  "version": "1.0.0",
+  "description": "Evaluates your project and recommends the optimal tech stack with senior justification.",
+  "author": "Carlos Martinez Pineda <charcraftycarlos@gmail.com>",
+  "license": "MIT",
+  "repository": "https://github.com/Charcraft/tech-stack-advisor",
+  "homepage": "https://github.com/Charcraft/tech-stack-advisor",
+  "keywords": ["tech-stack", "architecture-decision", "startup-tools", "cto-fractional"],
+  "category": "architecture",
+  "entry": "workflows/evaluate.yaml",
+  "inputs": {
+    "project_path": { "type": "string", "default": "." },
+    "skip_interview": { "type": "boolean", "default": false },
+    "preferred_stacks": { "type": "array", "items": { "type": "string" }, "default": [] }
+  },
+  "outputs": {
+    "decision_file": { "type": "string", "default": "STACK_DECISION.md" },
+    "next_steps_file": { "type": "string", "default": "NEXT_STEPS.md" }
+  },
+  "requires": {
+    "python": ">=3.10",
+    "git": ">=2.0"
+  },
+  "provides": {
+    "tools": ["detect-stack", "analyze-project", "recommend-stack", "generate-adr"],
+    "templates": ["go", "python", "rust", "node"]
+  }
+}
